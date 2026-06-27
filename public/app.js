@@ -126,13 +126,13 @@
 
       // Detect currency
       for (const k in prices) {
-        if (prices[k]?.currency) { currency = prices[k].currency; break; }
+        if (prices[k]?.price_overview?.currency) { currency = prices[k].price_overview.currency; break; }
       }
 
       // Calculate totals — sum unique game prices only (not multiplied by owner count)
       totalCurrentCents = 0;
       games.forEach(g => {
-        if (prices[g.appid]) totalCurrentCents += prices[g.appid].initial;
+        if (prices[g.appid] && prices[g.appid].price_overview) totalCurrentCents += prices[g.appid].price_overview.initial;
       });
 
       // Render
@@ -178,6 +178,20 @@
       allowTagsFetch = e.target.checked;
       if (allowTagsFetch) fetchTagsInBackground();
   });
+
+  // Share Link
+  const btnShare = document.getElementById('btn-share-link');
+  if (btnShare) {
+      btnShare.addEventListener('click', () => {
+          const steamIds = Object.keys(users).join(',');
+          if (!steamIds) return alert('Analyze a library first!');
+          const url = new URL(window.location.href);
+          url.searchParams.set('users', steamIds);
+          navigator.clipboard.writeText(url.toString());
+          btnShare.textContent = '✅ Copied!';
+          setTimeout(() => btnShare.textContent = '🔗 Copy Share Link', 2000);
+      });
+  }
 
   // ── Resolve inputs ─────────────────────────────
   async function resolveAllInputs(rawInputs) {
@@ -385,7 +399,8 @@
     const fmt = new Intl.NumberFormat(undefined, { style: 'currency', currency });
 
     chunk.forEach(game => {
-      const priceData = prices[game.appid];
+      const pDataFull = prices[game.appid] || {};
+      const priceData = pDataFull.price_overview;
       const isDup     = game.owners.length > 1;
       const isFree    = !priceData;
 
@@ -419,6 +434,11 @@
           metaHtml = `<div class="game-badge" style="background:var(--steam-green); color:#fff; position:absolute; top:8px; right:8px; font-weight:700;">${game.metacritic}</div>`;
       }
 
+      let bundleHtml = '';
+      if (pDataFull.package_groups && pDataFull.package_groups.length > 0) {
+          bundleHtml = `<div class="game-badge" style="background:#ff3b30; color:#fff; position:absolute; top:8px; left:8px; font-weight:700;">🔥 Bundle</div>`;
+      }
+
       // Build price row
       let pricesHtml = `<span class="game-price-base ${currentPriceStr ? 'strikethrough' : ''}">${basePriceStr}</span>`;
       if (currentPriceStr) {
@@ -432,6 +452,7 @@
       card.innerHTML = `
         ${badgeHtml}
         ${metaHtml}
+        ${bundleHtml}
         <img class="game-thumb" src="${imgSrc}" alt="${game.name}" loading="lazy"
           onerror="handleImgError(this, ${game.appid}, '#3a3a3c')">
         <div class="game-body">
@@ -534,14 +555,42 @@
     
     // Tags
     const tagsSection = document.getElementById('modal-tags-section');
-    const tagsList = document.getElementById('modal-tags-list');
-    
-    if (game.genres && game.genres.length > 0) {
-        tagsList.innerHTML = game.genres.map(t => `<span class="modal-tag">${t}</span>`).join('');
+    const tagsList    = document.getElementById('modal-tags-list');
+    if (game.tags && game.tags.length > 0) {
+        tagsList.innerHTML = game.tags.map(t => `<span class="tag-chip">${t}</span>`).join('');
         tagsSection.style.display = 'block';
     } else {
         tagsSection.style.display = 'none';
     }
+    
+    // PC Specs
+    const pDataFull = prices[game.appid] || {};
+    const specsSection = document.getElementById('modal-specs-section');
+    const specsEl = document.getElementById('modal-specs');
+    if (pDataFull.pc_requirements && pDataFull.pc_requirements.minimum) {
+        specsEl.innerHTML = pDataFull.pc_requirements.minimum + (pDataFull.pc_requirements.recommended || '');
+        specsSection.style.display = 'block';
+    } else {
+        specsSection.style.display = 'none';
+    }
+
+    // HLTB Fetch
+    const hltbSection = document.getElementById('modal-hltb-section');
+    const hltbEl = document.getElementById('modal-hltb');
+    hltbSection.style.display = 'block';
+    hltbEl.innerHTML = '<i>Fetching times...</i>';
+    
+    fetch(`/api/hltb?game=${encodeURIComponent(game.name)}`)
+      .then(r => r.json())
+      .then(data => {
+          if (data) {
+              hltbEl.innerHTML = `<b>Main Story:</b> ${data.gameplayMain} Hrs <br> <b>Completionist:</b> ${data.gameplayCompletionist} Hrs`;
+          } else {
+              hltbEl.innerHTML = 'No data found.';
+          }
+      }).catch(() => {
+          hltbSection.style.display = 'none';
+      });
 
     modalOverlay.style.display = 'flex';
     document.body.style.overflow = 'hidden';
@@ -557,7 +606,21 @@
   });
 
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') closeModal();
+      if (e.key === 'Escape') closeModal();
+  });
+
+  // URL Params initialization
+  window.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const usersParam = urlParams.get('users');
+      if (usersParam) {
+          const userList = usersParam.split(',');
+          const inputs = document.querySelectorAll('.member-input');
+          userList.forEach((u, i) => {
+              if (inputs[i]) inputs[i].value = u;
+          });
+          fetchBtn.click();
+      }
   });
 
   // ── Controls ───────────────────────────────────

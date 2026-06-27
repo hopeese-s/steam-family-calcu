@@ -1,7 +1,12 @@
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
+const NodeCache = require('node-cache');
+const { HowLongToBeatService } = require('howlongtobeat');
 require('dotenv').config();
+
+const myCache = new NodeCache({ stdTTL: 900 });
+const hltbService = new HowLongToBeatService();
 
 const app = express();
 app.use(cors());
@@ -25,7 +30,11 @@ app.get('/api/users', async (req, res) => {
         const { steamids } = req.query;
         if (!steamids) return res.status(400).json({ error: 'steamids required' });
 
+        const cacheKey = `users_${steamids}`;
+        if (myCache.has(cacheKey)) return res.json(myCache.get(cacheKey));
+
         const response = await axios.get(`http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=${STEAM_API_KEY}&steamids=${steamids}`);
+        myCache.set(cacheKey, response.data.response.players);
         res.json(response.data.response.players);
     } catch (error) {
         console.error('Error fetching users:', error.message);
@@ -58,6 +67,10 @@ app.get('/api/games', async (req, res) => {
         if (!steamids) return res.status(400).json({ error: 'steamids required' });
 
         const ids = steamids.split(',');
+        
+        const cacheKey = `games_${steamids}`;
+        if (myCache.has(cacheKey)) return res.json(myCache.get(cacheKey));
+
         const allGamesMap = new Map();
 
         // Fetch for each user
@@ -90,6 +103,7 @@ app.get('/api/games', async (req, res) => {
         }
 
         const aggregatedGames = Array.from(allGamesMap.values());
+        myCache.set(cacheKey, aggregatedGames);
         res.json(aggregatedGames);
 
     } catch (error) {
@@ -115,15 +129,31 @@ app.post('/api/prices', async (req, res) => {
 
         for (const chunk of chunks) {
             const idsString = chunk.join(',');
+            
+            const cacheKey = `prices_${idsString}`;
+            if (myCache.has(cacheKey)) {
+                Object.assign(priceData, myCache.get(cacheKey));
+                continue;
+            }
+
             try {
-                const response = await axios.get(`https://store.steampowered.com/api/appdetails?appids=${idsString}&filters=price_overview`);
+                const response = await axios.get(`https://store.steampowered.com/api/appdetails?appids=${idsString}&filters=price_overview,pc_requirements,package_groups`);
                 const data = response.data;
+                const chunkData = {};
                 
                 for (const appid in data) {
-                    if (data[appid].success && data[appid].data && data[appid].data.price_overview) {
-                        priceData[appid] = data[appid].data.price_overview;
+                    if (data[appid].success && data[appid].data) {
+                        const appData = data[appid].data;
+                        chunkData[appid] = {
+                            price_overview: appData.price_overview,
+                            pc_requirements: appData.pc_requirements,
+                            package_groups: appData.package_groups
+                        };
                     }
                 }
+                
+                Object.assign(priceData, chunkData);
+                myCache.set(cacheKey, chunkData);
             } catch (err) {
                 console.error(`Error fetching prices for chunk:`, err.message);
                 // Wait 1 second if rate limited, then continue (basic mitigation)
@@ -145,14 +175,46 @@ app.get('/api/deal', async (req, res) => {
         const { appid } = req.query;
         if (!appid) return res.status(400).json({ error: 'appid required' });
 
+        const cacheKey = `deal_${appid}`;
+        if (myCache.has(cacheKey)) return res.json(myCache.get(cacheKey));
+
         const response = await axios.get(`https://www.cheapshark.com/api/1.0/games?steamAppID=${appid}`);
         if (response.data && response.data.length > 0) {
+            myCache.set(cacheKey, { cheapest: response.data[0].cheapest });
             res.json({ cheapest: response.data[0].cheapest });
         } else {
+            myCache.set(cacheKey, { cheapest: null });
             res.json({ cheapest: null });
         }
     } catch (error) {
         res.json({ cheapest: null });
+    }
+});
+
+// 5. HowLongToBeat
+app.get('/api/hltb', async (req, res) => {
+    try {
+        const { game } = req.query;
+        if (!game) return res.status(400).json({ error: 'game required' });
+        
+        const cacheKey = `hltb_${game}`;
+        if (myCache.has(cacheKey)) return res.json(myCache.get(cacheKey));
+
+        const results = await hltbService.search(game);
+        if (results.length > 0) {
+            const bestMatch = results[0];
+            const data = {
+                gameplayMain: bestMatch.gameplayMain,
+                gameplayCompletionist: bestMatch.gameplayCompletionist
+            };
+            myCache.set(cacheKey, data);
+            res.json(data);
+        } else {
+            res.json(null);
+        }
+    } catch (error) {
+        console.error('HLTB error:', error.message);
+        res.json(null);
     }
 });
 

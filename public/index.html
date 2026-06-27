@@ -112,6 +112,10 @@
                             <span class="mac-slider"></span>
                         </label>
                     </div>
+
+                    <div style="margin-top: 24px; display: flex; flex-direction: column; gap: 8px;">
+                        <button id="btn-share-link" class="btn-ghost" style="width: 100%; justify-content: center;">🔗 Copy Share Link</button>
+                    </div>
                 </div>
             </aside>
 
@@ -203,6 +207,16 @@
                 <div class="modal-section" id="modal-tags-section" style="display:none">
                     <h3>Tags & Genres</h3>
                     <div id="modal-tags-list" class="modal-tags-list"></div>
+                </div>
+                
+                <div class="modal-section" id="modal-hltb-section" style="display:none">
+                    <h3>HowLongToBeat ⏱️</h3>
+                    <div id="modal-hltb" style="font-size:0.9rem; color:var(--mac-label-2);"></div>
+                </div>
+                
+                <div class="modal-section" id="modal-specs-section" style="display:none">
+                    <h3>PC Requirements 💻</h3>
+                    <div id="modal-specs" style="font-size:0.85rem; color:var(--mac-label-2); max-height: 150px; overflow-y: auto;"></div>
                 </div>
                 <div class="modal-section">
                     <a id="modal-steam-link" href="#" target="_blank" class="btn-primary modal-store-btn">View on Steam →</a>
