@@ -655,20 +655,30 @@
   function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
   window.handleImgError = function(img, appid, bgColor, isModal = false) {
-    if (!img.dataset.retry) {
-      img.dataset.retry = '1';
-      img.src = `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${appid}/capsule_231x87.jpg`;
+    // Determine the current retry count (default 0)
+    let retry = parseInt(img.dataset.retry || '0');
+    
+    // Array of fallback CDN URLs to try
+    const fallbacks = [
+        `https://cdn.akamai.steamstatic.com/steam/apps/${appid}/header.jpg`,
+        `https://steamcdn-a.akamaihd.net/steam/apps/${appid}/header.jpg`,
+        `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${appid}/capsule_231x87.jpg`,
+        `https://cdn.akamai.steamstatic.com/steam/apps/${appid}/capsule_231x87.jpg`
+    ];
+
+    if (retry < fallbacks.length) {
+        // Try the next fallback URL
+        img.src = fallbacks[retry];
+        img.dataset.retry = (retry + 1).toString();
     } else {
-      img.onerror = null;
-      if (isModal) {
-          // For modal, if there's no image, just hide the img tag completely
-          // The modal-header has a clean dark background and the text is overlaid.
-          img.style.display = 'none';
-      } else {
-          // For grid cards, load a transparent pixel to maintain aspect ratio
-          img.src = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
-          img.style.background = bgColor || '#3a3a3c';
-      }
+        // All fallbacks failed
+        img.onerror = null;
+        if (isModal) {
+            img.style.display = 'none';
+        } else {
+            img.src = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
+            img.style.background = bgColor || '#3a3a3c';
+        }
     }
   };
 
