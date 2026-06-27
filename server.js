@@ -115,7 +115,7 @@ app.get('/api/games', async (req, res) => {
 // 3. Fetch prices for a list of appids (in batches to avoid rate limits)
 app.post('/api/prices', async (req, res) => {
     try {
-        const { appids } = req.body; // Expecting array of appids
+        const { appids, cc = 'TH' } = req.body; // Expecting array of appids and optional cc
         if (!appids || !Array.isArray(appids)) return res.status(400).json({ error: 'appids array required' });
 
         // Chunk the appids array into chunks of 100
@@ -130,14 +130,14 @@ app.post('/api/prices', async (req, res) => {
         for (const chunk of chunks) {
             const idsString = chunk.join(',');
             
-            const cacheKey = `prices_${idsString}`;
+            const cacheKey = `prices_${cc}_${idsString}`;
             if (myCache.has(cacheKey)) {
                 Object.assign(priceData, myCache.get(cacheKey));
                 continue;
             }
 
             try {
-                const response = await axios.get(`https://store.steampowered.com/api/appdetails?appids=${idsString}&filters=price_overview`);
+                const response = await axios.get(`https://store.steampowered.com/api/appdetails?appids=${idsString}&filters=price_overview&cc=${cc}`);
                 const data = response.data;
                 const chunkData = {};
                 
@@ -216,13 +216,13 @@ app.get('/api/hltb', async (req, res) => {
 // 6. Game Details (Specs, Packages)
 app.get('/api/game-details', async (req, res) => {
     try {
-        const { appid } = req.query;
+        const { appid, cc = 'TH' } = req.query;
         if (!appid) return res.status(400).json({ error: 'appid required' });
 
-        const cacheKey = `gamedetail_${appid}`;
+        const cacheKey = `gamedetail_${cc}_${appid}`;
         if (myCache.has(cacheKey)) return res.json(myCache.get(cacheKey));
 
-        const response = await axios.get(`https://store.steampowered.com/api/appdetails?appids=${appid}&filters=price_overview,pc_requirements,package_groups`);
+        const response = await axios.get(`https://store.steampowered.com/api/appdetails?appids=${appid}&filters=price_overview,pc_requirements,package_groups&cc=${cc}`);
         const data = response.data;
 
         if (data[appid] && data[appid].success && data[appid].data) {

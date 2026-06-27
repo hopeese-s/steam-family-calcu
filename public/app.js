@@ -10,7 +10,8 @@
   let users      = {};        // steamid → player summary
   let prices     = {};        // appid  → steam price_overview
   let deals      = {};        // appid  → cheapest historic price (string, USD)
-  let currency   = 'USD';
+  let currency   = 'THB';
+  let currentCurrencyCode = 'th';
   let activeFilter = 'all';   // all | unique | duplicates
   let advancedFilter = 'all'; // all | free | gems
   let activeOwner  = null;    // steamid or null
@@ -28,6 +29,7 @@
   const btnText      = document.getElementById('btn-text');
   const btnLoader    = document.getElementById('btn-loader');
   const searchInput  = document.getElementById('search-input');
+  const currencySelect = document.getElementById('currency-select');
   const sortSelect   = document.getElementById('sort-select');
   const filterSelect = document.getElementById('filter-select');
   const loadingMore  = document.getElementById('loading-more');
@@ -120,7 +122,7 @@
       const pricesRes = await fetch('/api/prices', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ appids: games.map(g => g.appid) })
+        body:    JSON.stringify({ appids: games.map(g => g.appid), cc: currentCurrencyCode })
       });
       prices = await pricesRes.json();
 
@@ -562,7 +564,7 @@
     specsSection.style.display = 'block';
     specsEl.innerHTML = '<i>Fetching PC requirements...</i>';
     
-    fetch(`/api/game-details?appid=${game.appid}`)
+    fetch(`/api/game-details?appid=${game.appid}&cc=${currentCurrencyCode}`)
       .then(r => r.json())
       .then(data => {
           if (data && data.pc_requirements && data.pc_requirements.minimum) {
