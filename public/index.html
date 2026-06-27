@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SteamFamily — Library Dashboard</title>
+    <meta name="description" content="View your Steam family's combined game library, find duplicates, and track value.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- macOS Window Chrome -->
+    <div class="window-frame">
+        <div class="titlebar">
+            <div class="traffic-lights">
+                <span class="tl tl-close" title="Close"></span>
+                <span class="tl tl-min" title="Minimize"></span>
+                <span class="tl tl-max" title="Maximize"></span>
+            </div>
+            <span class="titlebar-title">SteamFamily — Library Dashboard</span>
+            <div class="titlebar-right"></div>
+        </div>
+
+        <!-- App Body -->
+        <div class="app-body">
+
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <div class="sidebar-section">
+                    <div class="sidebar-logo">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" fill="url(#sg)"/><defs><radialGradient id="sg" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(6 4) scale(18)"><stop stop-color="#4fc3f7"/><stop offset="1" stop-color="#1565c0"/></radialGradient></defs><path d="M8 12.5l2.5 2.5L16 9" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        <span>SteamFamily</span>
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <p class="sidebar-label">LIBRARY</p>
+                    <a class="sidebar-item active" id="nav-all" onclick="setFilter('all')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                        All Games
+                        <span class="sidebar-count" id="count-all">—</span>
+                    </a>
+                    <a class="sidebar-item" id="nav-unique" onclick="setFilter('unique')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="9"/></svg>
+                        Unique Only
+                        <span class="sidebar-count" id="count-unique">—</span>
+                    </a>
+                    <a class="sidebar-item" id="nav-duplicates" onclick="setFilter('duplicates')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V5a2 2 0 00-2-2z"/></svg>
+                        Duplicates
+                        <span class="sidebar-count sidebar-count-warn" id="count-duplicates">—</span>
+                    </a>
+                </div>
+
+                <div class="sidebar-section">
+                    <p class="sidebar-label">MEMBERS</p>
+                    <div id="sidebar-members">
+                        <p class="sidebar-empty">No members loaded</p>
+                    </div>
+                </div>
+
+                <div class="sidebar-section sidebar-stats-section">
+                    <p class="sidebar-label">LIBRARY VALUE</p>
+                    <div class="sidebar-stat-row">
+                        <span class="sidebar-stat-label">Current</span>
+                        <span class="sidebar-stat-val" id="stat-value">—</span>
+                    </div>
+                    <div class="sidebar-stat-row">
+                        <span class="sidebar-stat-label">Historic Low</span>
+                        <span class="sidebar-stat-val sidebar-stat-green" id="stat-historic">—</span>
+                    </div>
+                    <div class="sidebar-stat-row">
+                        <span class="sidebar-stat-label">Total Games</span>
+                        <span class="sidebar-stat-val" id="stat-total">—</span>
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <p class="sidebar-label">DATA FETCHING</p>
+                    
+                    <div class="toggle-row">
+                        <div class="toggle-info">
+                            <span class="toggle-title">Live Prices</span>
+                            <span class="toggle-desc">Current Steam prices</span>
+                        </div>
+                        <label class="mac-switch">
+                            <input type="checkbox" id="toggle-prices" checked>
+                            <span class="mac-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="toggle-row">
+                        <div class="toggle-info">
+                            <span class="toggle-title">Historic Lows</span>
+                            <span class="toggle-desc">Slow CheapShark API</span>
+                        </div>
+                        <label class="mac-switch">
+                            <input type="checkbox" id="toggle-historic">
+                            <span class="mac-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="toggle-row">
+                        <div class="toggle-info">
+                            <span class="toggle-title">Tags & Genres</span>
+                            <span class="toggle-desc">Slow Steam API</span>
+                        </div>
+                        <label class="mac-switch">
+                            <input type="checkbox" id="toggle-tags">
+                            <span class="mac-slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="main-content">
+
+                <!-- Setup View (shown before data loads) -->
+                <div id="setup-view" class="setup-view">
+                    <div class="setup-hero">
+                        <h1>Your Family Library,<br><span class="hero-gradient">All in One Place.</span></h1>
+                        <p>Enter Steam IDs, usernames, or paste profile links for up to 6 family members.</p>
+                    </div>
+
+                    <div class="setup-card">
+                        <div class="member-inputs-grid" id="member-inputs">
+                            <!-- 6 member inputs generated by JS -->
+                        </div>
+                        <div class="setup-actions">
+                            <button id="fetch-btn" class="btn-primary">
+                                <div id="btn-loader" class="btn-spinner" style="display:none"></div>
+                                <span id="btn-text">Analyze Library</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Library View (shown after data loads) -->
+                <div id="library-view" class="library-view" style="display:none;">
+                    <div class="toolbar">
+                        <div class="search-wrapper">
+                            <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
+                            <input type="text" id="search-input" class="search-input" placeholder="Search games…" />
+                        </div>
+                        <div class="toolbar-right">
+                            <select id="filter-select" class="toolbar-select">
+                                <option value="all">Filter: All Games</option>
+                                <option value="free">Filter: Free to Play</option>
+                                <option value="gems">Filter: Hidden Gems</option>
+                            </select>
+                            <select id="sort-select" class="toolbar-select">
+                                <option value="price-desc">Sort: Price ↓</option>
+                                <option value="price-asc">Sort: Price ↑</option>
+                                <option value="low-desc">Sort: Historic Low ↓</option>
+                                <option value="low-asc">Sort: Historic Low ↑</option>
+                                <option value="playtime-desc">Sort: Playtime ↓</option>
+                                <option value="owners-desc">Sort: Owners ↓</option>
+                                <option value="owners-asc">Sort: Owners ↑</option>
+                                <option value="name-asc">Sort: A–Z</option>
+                            </select>
+                            <button class="btn-ghost" onclick="resetSetup()">← Back</button>
+                        </div>
+                    </div>
+
+                    <!-- Dock Container -->
+                    <div class="games-scroll-area">
+                        <div id="games-grid" class="games-grid"></div>
+                        <div id="scroll-sentinel" style="height: 1px;"></div>
+                        <div id="loading-more" class="loading-more" style="display:none">
+                            <div class="spinner"></div>
+                            <span>Fetching historic prices…</span>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- Game Detail Modal -->
+    <div id="modal-overlay" class="modal-overlay" style="display:none">
+        <div class="modal-window">
+            <div class="modal-header">
+                <img id="modal-header-img" src="" alt="">
+                <div class="modal-header-overlay"></div>
+                <div class="modal-title-area">
+                    <h2 id="modal-name"></h2>
+                    <div class="modal-price-row">
+                        <span id="modal-price"></span>
+                        <span id="modal-low"></span>
+                    </div>
+                </div>
+                <button class="modal-close" onclick="closeModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-section">
+                    <h3>Owned By</h3>
+                    <div id="modal-owners" class="modal-owners"></div>
+                </div>
+                <div class="modal-section" id="modal-tags-section" style="display:none">
+                    <h3>Tags & Genres</h3>
+                    <div id="modal-tags-list" class="modal-tags-list"></div>
+                </div>
+                <div class="modal-section">
+                    <a id="modal-steam-link" href="#" target="_blank" class="btn-primary modal-store-btn">View on Steam →</a>
+                    <a id="modal-steamdb-link" href="#" target="_blank" class="btn-ghost modal-store-btn">SteamDB →</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
