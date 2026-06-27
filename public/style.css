@@ -629,6 +629,7 @@ input:checked + .mac-slider:before {
   font-size: .82rem;
   font-weight: 600;
   line-height: 1.3;
+  min-height: 2.13rem; /* Force 2 lines height so cards don't jump */
   color: var(--mac-label);
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -641,6 +642,7 @@ input:checked + .mac-slider:before {
   align-items: baseline;
   gap: .5rem;
   flex-wrap: wrap;
+  margin-top: auto; /* Push to bottom of flex container */
 }
 
 /* Price: สีขาว = ราคาเต็ม | สีเหลือง = ราคาลดตอนนี้ | สีเขียว = Historical Low */
