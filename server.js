@@ -9,8 +9,15 @@ app.use(express.json());
 
 const STEAM_API_KEY = process.env.STEAM_API_KEY;
 
+const path = require('path');
+
 // Serve static files from 'public' directory
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Explicitly serve index.html for the root route (Fixes "Cannot GET /" on Vercel)
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 // 1. Fetch user summaries (to get their names and avatars)
 app.get('/api/users', async (req, res) => {
@@ -153,3 +160,5 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
 });
+
+module.exports = app;
