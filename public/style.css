@@ -552,6 +552,11 @@ input:checked + .mac-slider:before {
   appearance: auto;
 }
 
+.toolbar-select option {
+  background: #1e1e1e;
+  color: #fff;
+}
+
 /* ─── Library View ─── */
 .library-view {
   display: flex;

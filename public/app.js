@@ -126,13 +126,13 @@
 
       // Detect currency
       for (const k in prices) {
-        if (prices[k]?.price_overview?.currency) { currency = prices[k].price_overview.currency; break; }
+        if (prices[k]?.currency) { currency = prices[k].currency; break; }
       }
 
       // Calculate totals — sum unique game prices only (not multiplied by owner count)
       totalCurrentCents = 0;
       games.forEach(g => {
-        if (prices[g.appid] && prices[g.appid].price_overview) totalCurrentCents += prices[g.appid].price_overview.initial;
+        if (prices[g.appid]) totalCurrentCents += prices[g.appid].initial;
       });
 
       // Render
@@ -399,8 +399,7 @@
     const fmt = new Intl.NumberFormat(undefined, { style: 'currency', currency });
 
     chunk.forEach(game => {
-      const pDataFull = prices[game.appid] || {};
-      const priceData = pDataFull.price_overview;
+      const priceData = prices[game.appid];
       const isDup     = game.owners.length > 1;
       const isFree    = !priceData;
 
@@ -434,11 +433,6 @@
           metaHtml = `<div class="game-badge" style="background:var(--steam-green); color:#fff; position:absolute; top:8px; right:8px; font-weight:700;">${game.metacritic}</div>`;
       }
 
-      let bundleHtml = '';
-      if (pDataFull.package_groups && pDataFull.package_groups.length > 0) {
-          bundleHtml = `<div class="game-badge" style="background:#ff3b30; color:#fff; position:absolute; top:8px; left:8px; font-weight:700;">🔥 Bundle</div>`;
-      }
-
       // Build price row
       let pricesHtml = `<span class="game-price-base ${currentPriceStr ? 'strikethrough' : ''}">${basePriceStr}</span>`;
       if (currentPriceStr) {
@@ -452,7 +446,6 @@
       card.innerHTML = `
         ${badgeHtml}
         ${metaHtml}
-        ${bundleHtml}
         <img class="game-thumb" src="${imgSrc}" alt="${game.name}" loading="lazy"
           onerror="handleImgError(this, ${game.appid}, '#3a3a3c')">
         <div class="game-body">
@@ -564,15 +557,22 @@
     }
     
     // PC Specs
-    const pDataFull = prices[game.appid] || {};
     const specsSection = document.getElementById('modal-specs-section');
     const specsEl = document.getElementById('modal-specs');
-    if (pDataFull.pc_requirements && pDataFull.pc_requirements.minimum) {
-        specsEl.innerHTML = pDataFull.pc_requirements.minimum + (pDataFull.pc_requirements.recommended || '');
-        specsSection.style.display = 'block';
-    } else {
-        specsSection.style.display = 'none';
-    }
+    specsSection.style.display = 'block';
+    specsEl.innerHTML = '<i>Fetching PC requirements...</i>';
+    
+    fetch(`/api/game-details?appid=${game.appid}`)
+      .then(r => r.json())
+      .then(data => {
+          if (data && data.pc_requirements && data.pc_requirements.minimum) {
+              specsEl.innerHTML = data.pc_requirements.minimum + (data.pc_requirements.recommended || '');
+          } else {
+              specsSection.style.display = 'none';
+          }
+      }).catch(() => {
+          specsSection.style.display = 'none';
+      });
 
     // HLTB Fetch
     const hltbSection = document.getElementById('modal-hltb-section');

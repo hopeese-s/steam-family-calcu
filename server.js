@@ -137,18 +137,13 @@ app.post('/api/prices', async (req, res) => {
             }
 
             try {
-                const response = await axios.get(`https://store.steampowered.com/api/appdetails?appids=${idsString}&filters=price_overview,pc_requirements,package_groups`);
+                const response = await axios.get(`https://store.steampowered.com/api/appdetails?appids=${idsString}&filters=price_overview`);
                 const data = response.data;
                 const chunkData = {};
                 
                 for (const appid in data) {
-                    if (data[appid].success && data[appid].data) {
-                        const appData = data[appid].data;
-                        chunkData[appid] = {
-                            price_overview: appData.price_overview,
-                            pc_requirements: appData.pc_requirements,
-                            package_groups: appData.package_groups
-                        };
+                    if (data[appid].success && data[appid].data && data[appid].data.price_overview) {
+                        chunkData[appid] = data[appid].data.price_overview;
                     }
                 }
                 
@@ -215,6 +210,30 @@ app.get('/api/hltb', async (req, res) => {
     } catch (error) {
         console.error('HLTB error:', error.message);
         res.json(null);
+    }
+});
+
+// 6. Game Details (Specs, Packages)
+app.get('/api/game-details', async (req, res) => {
+    try {
+        const { appid } = req.query;
+        if (!appid) return res.status(400).json({ error: 'appid required' });
+
+        const cacheKey = `gamedetail_${appid}`;
+        if (myCache.has(cacheKey)) return res.json(myCache.get(cacheKey));
+
+        const response = await axios.get(`https://store.steampowered.com/api/appdetails?appids=${appid}&filters=price_overview,pc_requirements,package_groups`);
+        const data = response.data;
+
+        if (data[appid] && data[appid].success && data[appid].data) {
+            myCache.set(cacheKey, data[appid].data);
+            res.json(data[appid].data);
+        } else {
+            res.status(404).json({ error: 'Not found' });
+        }
+    } catch (error) {
+        console.error('Error fetching game details:', error.message);
+        res.status(500).json({ error: 'Failed to fetch game details' });
     }
 });
 
