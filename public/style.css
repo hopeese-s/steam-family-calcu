@@ -659,10 +659,24 @@ input:checked + .mac-slider:before {
 
 .game-thumb {
   width: 100%;
-  aspect-ratio: 460 / 215;
+  aspect-ratio: 460/215;
   object-fit: cover;
   display: block;
   background: var(--mac-bg-3);
+}
+
+.game-thumb-placeholder {
+  width: 100%;
+  aspect-ratio: 460/215;
+  background: linear-gradient(135deg, #2c2c2e 0%, #3a3a3c 50%, #2c2c2e 100%);
+  background-size: 200% 200%;
+  animation: shimmer 2s ease-in-out infinite;
+  display: block;
+}
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 .game-body {

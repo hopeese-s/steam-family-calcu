@@ -711,46 +711,50 @@
   // ── Utils ──────────────────────────────────────
   function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-  window.handleImgError = function(img, appid, bgColor, isModal = false, iconHash = '') {
-    // Determine the current retry count (default 0)
+  // ── Image fallback with server proxy ───────────
+  window.handleImgError = function(img, appid, bgColor, isModal = false) {
     let retry = parseInt(img.dataset.retry || '0');
-    
-    // Array of fallback CDN URLs to try.
-    // NOTE: Do NOT include the initial src here — browser won't re-fire onerror for same URL.
-    // Initial src is header.jpg, so we fallback to capsule_616x353, then other mirrors.
-    const fallbacks = [
+
+    // Direct CDN fallbacks (fast, tried first)
+    const directFallbacks = [
         `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${appid}/capsule_616x353.jpg`,
+        `https://cdn.cloudflare.steamstatic.com/steam/apps/${appid}/header.jpg`,
         `https://cdn.akamai.steamstatic.com/steam/apps/${appid}/header.jpg`,
         `https://steamcdn-a.akamaihd.net/steam/apps/${appid}/header.jpg`,
         `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${appid}/capsule_231x87.jpg`,
     ];
 
-    if (iconHash) {
-        fallbacks.push(`https://media.steampowered.com/steamcommunity/public/images/apps/${appid}/${iconHash}.jpg`);
+    if (retry < directFallbacks.length) {
+        img.src = directFallbacks[retry];
+        img.dataset.retry = (retry + 1).toString();
+        return;
     }
 
-    if (retry < fallbacks.length) {
-        // Try the next fallback URL
-        img.src = fallbacks[retry];
-        
-        // If this is the last fallback (the icon), we must prevent it from stretching awkwardly
-        if (retry === fallbacks.length - 1 && iconHash && !isModal) {
-            img.style.objectFit = 'contain';
-            img.style.background = bgColor || '#3a3a3c';
-            img.style.padding = '10px';
-        }
-        
+    // All direct CDNs failed → route through our server proxy (bypasses browser CORS/CSP)
+    if (retry === directFallbacks.length) {
         img.dataset.retry = (retry + 1).toString();
-    } else {
-        // All fallbacks failed
-        img.onerror = null;
-        if (isModal) {
-            img.style.display = 'none';
-        } else {
-            img.src = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
-            img.style.background = bgColor || '#3a3a3c';
-        }
+        img.onerror = function() {
+            // Proxy also failed → styled placeholder, no ugly icon
+            img.onerror = null;
+            showPlaceholder(img, isModal);
+        };
+        img.src = `/api/img?appid=${appid}`;
+        return;
     }
+
+    showPlaceholder(img, isModal);
   };
+
+  function showPlaceholder(img, isModal) {
+    img.onerror = null;
+    if (isModal) {
+        img.style.display = 'none';
+    } else {
+        img.style.display = 'none';
+        const ph = document.createElement('div');
+        ph.className = 'game-thumb game-thumb-placeholder';
+        if (img.parentElement) img.parentElement.insertBefore(ph, img);
+    }
+  }
 
 })();

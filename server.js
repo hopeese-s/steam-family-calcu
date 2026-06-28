@@ -24,6 +24,42 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Image Proxy — fetches Steam CDN images server-side to bypass browser CORS/CSP blocks
+app.get('/api/img', async (req, res) => {
+    const { appid } = req.query;
+    if (!appid || !/^\d+$/.test(appid)) return res.status(400).end();
+
+    const cacheKey = `img_${appid}`;
+    if (myCache.has(cacheKey)) {
+        const cached = myCache.get(cacheKey);
+        res.set('Content-Type', cached.contentType);
+        res.set('Cache-Control', 'public, max-age=86400');
+        return res.send(cached.data);
+    }
+
+    const urls = [
+        `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${appid}/header.jpg`,
+        `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${appid}/capsule_616x353.jpg`,
+        `https://cdn.cloudflare.steamstatic.com/steam/apps/${appid}/header.jpg`,
+        `https://cdn.akamai.steamstatic.com/steam/apps/${appid}/header.jpg`,
+        `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${appid}/capsule_231x87.jpg`,
+    ];
+
+    for (const url of urls) {
+        try {
+            const r = await axios.get(url, { responseType: 'arraybuffer', timeout: 5000 });
+            if (r.status === 200 && r.data.length > 5000) { // >5KB = real image, not error page
+                const contentType = r.headers['content-type'] || 'image/jpeg';
+                myCache.set(cacheKey, { data: r.data, contentType }, 3600);
+                res.set('Content-Type', contentType);
+                res.set('Cache-Control', 'public, max-age=86400');
+                return res.send(r.data);
+            }
+        } catch (_) { /* try next */ }
+    }
+    res.status(404).end();
+});
+
 // 1. Fetch user summaries (to get their names and avatars)
 app.get('/api/users', async (req, res) => {
     try {
