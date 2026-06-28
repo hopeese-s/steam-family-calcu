@@ -574,6 +574,16 @@
           } else {
               specsSection.style.display = 'none';
           }
+          
+          // Bundle Badge Logic
+          const bundleBadge = document.getElementById('modal-bundle-badge');
+          if (bundleBadge) {
+              if (data && data.package_groups && data.package_groups.length > 0) {
+                  bundleBadge.style.display = 'inline-block';
+              } else {
+                  bundleBadge.style.display = 'none';
+              }
+          }
       }).catch(() => {
           specsSection.style.display = 'none';
       });
@@ -638,13 +648,25 @@
   }
 
   window.resetSetup = function () {
-    setupView.style.display   = 'flex';
+    setupView.style.display  = 'flex';
     libraryView.style.display = 'none';
     games = []; users = {}; prices = {}; deals = {};
     gamesGrid.innerHTML = '';
     activeFilter = 'all'; activeOwner = null; searchTerm = '';
     document.querySelectorAll('.sidebar-item[id^="nav-"]').forEach(el => el.classList.remove('active'));
     document.getElementById('nav-all')?.classList.add('active');
+  };
+
+  window.copyShareLink = function() {
+      const inputs = Array.from(document.querySelectorAll('.member-input')).map(inp => inp.value.trim()).filter(v => v);
+      if (inputs.length === 0) return;
+      const url = new URL(window.location.href);
+      url.searchParams.set('users', inputs.join(','));
+      navigator.clipboard.writeText(url.toString()).then(() => {
+          alert('Share link copied to clipboard!');
+      }).catch(() => {
+          prompt("Copy this link:", url.toString());
+      });
   };
 
   function setLoading(state, text) {

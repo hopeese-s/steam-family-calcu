@@ -174,6 +174,7 @@
                                 <option value="owners-asc">Sort: Owners ↑</option>
                                 <option value="name-asc">Sort: A–Z</option>
                             </select>
+                            <button id="btn-share" class="btn-ghost" onclick="copyShareLink()">🔗 Share</button>
                             <button class="btn-ghost" onclick="resetSetup()">← Back</button>
                         </div>
                     </div>
@@ -200,7 +201,10 @@
                 <img id="modal-header-img" src="" alt="">
                 <div class="modal-header-overlay"></div>
                 <div class="modal-title-area">
-                    <h2 id="modal-name"></h2>
+                    <div style="display:flex; align-items:center;">
+                        <h2 id="modal-name"></h2>
+                        <span id="modal-bundle-badge" style="display:none; background:#ff3b30; color:#fff; font-size:0.75rem; padding:2px 6px; border-radius:4px; margin-left:8px; vertical-align:middle; white-space:nowrap;">🔥 Bundle Available</span>
+                    </div>
                     <div class="modal-price-row">
                         <span id="modal-price"></span>
                         <span id="modal-low"></span>
