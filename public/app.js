@@ -171,6 +171,33 @@
       });
   }
 
+  // Currency change: refetch all prices in new currency
+  if (currencySelect) {
+      currencySelect.addEventListener('change', async (e) => {
+          currentCurrencyCode = e.target.value;
+          currency = currentCurrencyCode === 'us' ? 'USD' : 'THB';
+          if (!games.length) return;
+          prices = {};
+          totalCurrentCents = 0;
+          updateStatsDisplay();
+          const pricesRes = await fetch('/api/prices', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ appids: games.map(g => g.appid), cc: currentCurrencyCode })
+          });
+          prices = await pricesRes.json();
+          for (const k in prices) {
+              if (prices[k]?.currency) { currency = prices[k].currency; break; }
+          }
+          totalCurrentCents = 0;
+          games.forEach(g => {
+              if (prices[g.appid]) totalCurrentCents += prices[g.appid].initial;
+          });
+          updateStatsDisplay();
+          renderGames();
+      });
+  }
+
   toggleHistoric.addEventListener('change', e => {
       allowHistoricFetch = e.target.checked;
       if (allowHistoricFetch) fetchHistoricLowsInBackground();
@@ -420,7 +447,7 @@
       }
 
       const lowStr   = deals[game.appid] ? `$${deals[game.appid]}` : null;
-      const imgSrc   = `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${game.appid}/header.jpg`;
+      const imgSrc   = `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${game.appid}/capsule_616x353.jpg`;
 
       const card = document.createElement('div');
       card.className = 'game-card';
@@ -497,8 +524,11 @@
     const headerImg = document.getElementById('modal-header-img');
     headerImg.dataset.retry = '';
     headerImg.style.background = '';
-    headerImg.style.display = 'block'; // Ensure it's visible initially
-    headerImg.src = `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${game.appid}/header.jpg`;
+    headerImg.style.display = 'block';
+    headerImg.dataset.retry = '0';
+    headerImg.style.objectFit = '';
+    headerImg.style.padding = '';
+    headerImg.src = `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${game.appid}/capsule_616x353.jpg`;
     headerImg.onerror = function() { handleImgError(this, game.appid, '#2c2c2e', true, game.img_icon_url || ''); };
 
     document.getElementById('modal-name').textContent    = game.name;
