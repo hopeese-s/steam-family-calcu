@@ -282,34 +282,35 @@
   }
 
   // ── Tags fetcher ───────────────────────────────
-  async function fetchTagsInBackground() {
+  function fetchTagsInBackground() {
       if (!allowTagsFetch) return;
       loadingMore.style.display = 'flex';
       loadingMore.querySelector('span').textContent = 'Fetching tags & genres…';
       
-      for (const game of games) {
-          if (!allowTagsFetch) break;
-          // Steam Store API rate limit is very strict (max ~200 per 5 mins).
-          // We will wait 1.5s per request.
-          try {
-              if (game.genres) continue; // already fetched
-              const r = await fetch(`https://store.steampowered.com/api/appdetails?appids=${game.appid}&filters=categories,genres,metacritic,recommendations`);
-              const d = await r.json();
-              if (d && d[game.appid]?.success) {
-                  const data = d[game.appid].data;
-                  game.genres = data.genres?.map(g => g.description) || [];
-                  game.categories = data.categories?.map(c => c.description) || [];
-                  game.metacritic = data.metacritic?.score || null;
-                  game.recommendations = data.recommendations?.total || 0;
-                  
-                  // Re-render only if filtering by gems
-                  if (advancedFilter === 'gems') renderGames();
-              }
-          } catch (_) { /* ignore */ }
-          
-          await sleep(1500);
-      }
-      loadingMore.style.display = 'none';
+      (async () => {
+          for (const game of games) {
+              if (!allowTagsFetch) break;
+              // Steam Store API rate limit is very strict (max ~200 per 5 mins).
+              // We will wait 1.5s per request.
+              try {
+                  if (game.genres) continue; // already fetched
+                  const r = await fetch(`/api/tags?appid=${game.appid}`);
+                  const d = await r.json();
+                  if (d) {
+                      game.genres = d.genres || [];
+                      game.categories = d.categories || [];
+                      game.metacritic = d.metacritic || null;
+                      game.recommendations = d.recommendations || 0;
+                      
+                      // Re-render only if filtering by gems
+                      if (advancedFilter === 'gems') renderGames();
+                  }
+              } catch (_) { /* ignore */ }
+              
+              await sleep(1500);
+          }
+          loadingMore.style.display = 'none';
+      })();
   }
 
   // ── Sidebar ────────────────────────────────────
@@ -670,10 +671,6 @@
       }
   });
 
-  // ── Controls ───────────────────────────────────
-  searchInput.addEventListener('input', e => { searchTerm = e.target.value; renderGames(); });
-  sortSelect.addEventListener('change', e => { sortMode = e.target.value; renderGames(); });
-
   // ── View switcher ──────────────────────────────
   function switchToLibrary() {
     setupView.style.display  = 'none';
@@ -688,18 +685,6 @@
     activeFilter = 'all'; activeOwner = null; searchTerm = '';
     document.querySelectorAll('.sidebar-item[id^="nav-"]').forEach(el => el.classList.remove('active'));
     document.getElementById('nav-all')?.classList.add('active');
-  };
-
-  window.copyShareLink = function() {
-      const inputs = Array.from(document.querySelectorAll('.member-input')).map(inp => inp.value.trim()).filter(v => v);
-      if (inputs.length === 0) return;
-      const url = new URL(window.location.href);
-      url.searchParams.set('users', inputs.join(','));
-      navigator.clipboard.writeText(url.toString()).then(() => {
-          alert('Share link copied to clipboard!');
-      }).catch(() => {
-          prompt("Copy this link:", url.toString());
-      });
   };
 
   function setLoading(state, text) {

@@ -1,21 +1,25 @@
 {
   "name": "7th",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Steam Family Dashboard — merge libraries, track value, find gems",
+  "main": "server.js",
   "scripts": {
+    "start": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "engines": {
+    "node": ">=18"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "@google/generative-ai": "^0.24.1",
     "axios": "^1.18.1",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "express-rate-limit": "^7.5.0",
     "howlongtobeat": "^1.8.0",
     "node-cache": "^5.1.2"
   }

@@ -3,14 +3,49 @@ const cors = require('cors');
 const axios = require('axios');
 const NodeCache = require('node-cache');
 const { HowLongToBeatService } = require('howlongtobeat');
+const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const myCache = new NodeCache({ stdTTL: 900 });
 const hltbService = new HowLongToBeatService();
 
 const app = express();
-app.use(cors());
+
+// ── CORS: only allow the dashboard's own frontend ──
+const ALLOWED_ORIGINS = [
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  process.env.PUBLIC_URL,
+].filter(Boolean);
+
+app.use(cors({
+  origin: ALLOWED_ORIGINS,
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type'],
+}));
+
 app.use(express.json());
+
+// ── Global rate limiter: 100 req/min per IP ──
+const globalLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please slow down.' },
+});
+app.use('/api/', globalLimiter);
+
+// ── Stricter limiter for external-API proxy routes (prices, deals, etc.) ──
+const externalApiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api/prices', externalApiLimiter);
+app.use('/api/deal', externalApiLimiter);
+app.use('/api/hltb', externalApiLimiter);
 
 const STEAM_API_KEY = process.env.STEAM_API_KEY;
 
@@ -246,6 +281,41 @@ app.get('/api/hltb', async (req, res) => {
     } catch (error) {
         console.error('HLTB error:', error.message);
         res.json(null);
+    }
+});
+
+// 7. Tags & Metadata — server-side proxy to Steam Store API
+//    Avoids CORS issues and browser-side rate limits
+app.get('/api/tags', async (req, res) => {
+    try {
+        const { appid } = req.query;
+        if (!appid || !/^\d+$/.test(appid)) return res.status(400).json({ error: 'appid required' });
+
+        const cacheKey = `tags_${appid}`;
+        if (myCache.has(cacheKey)) return res.json(myCache.get(cacheKey));
+
+        const response = await axios.get(
+            `https://store.steampowered.com/api/appdetails?appids=${appid}&filters=categories,genres,metacritic,recommendations`,
+            { timeout: 8000 }
+        );
+        const data = response.data;
+
+        if (data && data[appid] && data[appid].success) {
+            const appData = data[appid].data;
+            const result = {
+                genres: (appData.genres || []).map(g => g.description),
+                categories: (appData.categories || []).map(c => c.description),
+                metacritic: appData.metacritic?.score || null,
+                recommendations: appData.recommendations?.total || 0,
+            };
+            myCache.set(cacheKey, result);
+            res.json(result);
+        } else {
+            res.status(404).json({ error: 'Not found' });
+        }
+    } catch (error) {
+        console.error('Error fetching tags:', error.message);
+        res.status(502).json({ error: 'Failed to fetch tags' });
     }
 });
 
