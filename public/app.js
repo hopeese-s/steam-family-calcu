@@ -552,7 +552,6 @@
     `;
 
     document.getElementById('modal-steam-link').href   = `https://store.steampowered.com/app/${game.appid}/`;
-    document.getElementById('modal-header-link').href  = `https://store.steampowered.com/app/${game.appid}/`;
     document.getElementById('modal-steamdb-link').href = `https://steamdb.info/app/${game.appid}/`;
     document.getElementById('modal-ggdeals-link').href = `https://gg.deals/games/?title=${encodeURIComponent(game.name)}`;
 
@@ -714,13 +713,13 @@
     // Determine the current retry count (default 0)
     let retry = parseInt(img.dataset.retry || '0');
     
-    // Array of fallback CDN URLs to try
+    // Array of fallback CDN URLs to try (newest/best resolution first)
     const fallbacks = [
         `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${appid}/capsule_616x353.jpg`,
+        `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${appid}/header.jpg`,
         `https://cdn.akamai.steamstatic.com/steam/apps/${appid}/header.jpg`,
         `https://steamcdn-a.akamaihd.net/steam/apps/${appid}/header.jpg`,
         `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${appid}/capsule_231x87.jpg`,
-        `https://cdn.akamai.steamstatic.com/steam/apps/${appid}/capsule_231x87.jpg`
     ];
 
     if (iconHash) {
