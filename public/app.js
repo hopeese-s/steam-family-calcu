@@ -447,7 +447,8 @@
       }
 
       const lowStr   = deals[game.appid] ? `$${deals[game.appid]}` : null;
-      const imgSrc   = `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${game.appid}/capsule_616x353.jpg`;
+      // Start with header.jpg — most reliable. capsule_616x353 is the first fallback.
+      const imgSrc   = `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${game.appid}/header.jpg`;
 
       const card = document.createElement('div');
       card.className = 'game-card';
@@ -528,7 +529,8 @@
     headerImg.dataset.retry = '0';
     headerImg.style.objectFit = '';
     headerImg.style.padding = '';
-    headerImg.src = `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${game.appid}/capsule_616x353.jpg`;
+    // Start with header.jpg for modal — large, reliable
+    headerImg.src = `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${game.appid}/header.jpg`;
     headerImg.onerror = function() { handleImgError(this, game.appid, '#2c2c2e', true, game.img_icon_url || ''); };
 
     document.getElementById('modal-name').textContent    = game.name;
@@ -713,10 +715,11 @@
     // Determine the current retry count (default 0)
     let retry = parseInt(img.dataset.retry || '0');
     
-    // Array of fallback CDN URLs to try (newest/best resolution first)
+    // Array of fallback CDN URLs to try.
+    // NOTE: Do NOT include the initial src here — browser won't re-fire onerror for same URL.
+    // Initial src is header.jpg, so we fallback to capsule_616x353, then other mirrors.
     const fallbacks = [
         `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${appid}/capsule_616x353.jpg`,
-        `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${appid}/header.jpg`,
         `https://cdn.akamai.steamstatic.com/steam/apps/${appid}/header.jpg`,
         `https://steamcdn-a.akamaihd.net/steam/apps/${appid}/header.jpg`,
         `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${appid}/capsule_231x87.jpg`,
