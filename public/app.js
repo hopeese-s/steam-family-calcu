@@ -521,8 +521,10 @@
       ${metaHtml}
     `;
 
-    document.getElementById('modal-link-steam').href   = `https://store.steampowered.com/app/${game.appid}/`;
-    document.getElementById('modal-link-steamdb').href = `https://steamdb.info/app/${game.appid}/`;
+    document.getElementById('modal-steam-link').href   = `https://store.steampowered.com/app/${game.appid}/`;
+    document.getElementById('modal-header-link').href  = `https://store.steampowered.com/app/${game.appid}/`;
+    document.getElementById('modal-steamdb-link').href = `https://steamdb.info/app/${game.appid}/`;
+    document.getElementById('modal-ggdeals-link').href = `https://gg.deals/games/?title=${encodeURIComponent(game.name)}`;
 
     const ownersEl = document.getElementById('modal-owners');
     
@@ -684,6 +686,7 @@
     
     // Array of fallback CDN URLs to try
     const fallbacks = [
+        `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${appid}/capsule_616x353.jpg`,
         `https://cdn.akamai.steamstatic.com/steam/apps/${appid}/header.jpg`,
         `https://steamcdn-a.akamaihd.net/steam/apps/${appid}/header.jpg`,
         `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${appid}/capsule_231x87.jpg`,
