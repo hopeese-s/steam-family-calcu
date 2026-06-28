@@ -372,13 +372,17 @@
 
     // Sort
     filtered.sort((a, b) => {
-      const pa = prices[a.appid]?.initial ?? 0;
-      const pb = prices[b.appid]?.initial ?? 0;
+      const pInitA = prices[a.appid]?.initial ?? 0;
+      const pInitB = prices[b.appid]?.initial ?? 0;
+      const pFinalA = prices[a.appid]?.final ?? 0;
+      const pFinalB = prices[b.appid]?.final ?? 0;
       const lowA = deals[a.appid] ?? 0;
       const lowB = deals[b.appid] ?? 0;
 
-      if (sortMode === 'price-desc')  return pb - pa;
-      if (sortMode === 'price-asc')   return pa - pb;
+      if (sortMode === 'price-desc')  return pFinalB - pFinalA;
+      if (sortMode === 'price-asc')   return pFinalA - pFinalB;
+      if (sortMode === 'full-desc')   return pInitB - pInitA;
+      if (sortMode === 'full-asc')    return pInitA - pInitB;
       if (sortMode === 'low-desc')    return lowB - lowA;
       if (sortMode === 'low-asc')     return lowA - lowB;
       if (sortMode === 'owners-desc') return b.owners.length - a.owners.length;
@@ -449,7 +453,7 @@
         ${badgeHtml}
         ${metaHtml}
         <img class="game-thumb" src="${imgSrc}" alt="${game.name}" loading="lazy"
-          onerror="handleImgError(this, ${game.appid}, '#3a3a3c')">
+          onerror="handleImgError(this, ${game.appid}, '#3a3a3c', false, '${game.img_icon_url || ''}')">
         <div class="game-body">
           <div class="game-name" title="${game.name}">${game.name}</div>
           <div class="game-prices">
@@ -495,9 +499,7 @@
     headerImg.style.background = '';
     headerImg.style.display = 'block'; // Ensure it's visible initially
     headerImg.src = `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${game.appid}/header.jpg`;
-    headerImg.onerror = function() {
-        handleImgError(this, game.appid, '#2c2c2e', true);
-    };
+    headerImg.onerror = function() { handleImgError(this, game.appid, '#2c2c2e', true, game.img_icon_url || ''); };
 
     document.getElementById('modal-name').textContent    = game.name;
     const modalPrices = document.getElementById('modal-prices');
@@ -654,7 +656,7 @@
   // ── Utils ──────────────────────────────────────
   function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-  window.handleImgError = function(img, appid, bgColor, isModal = false) {
+  window.handleImgError = function(img, appid, bgColor, isModal = false, iconHash = '') {
     // Determine the current retry count (default 0)
     let retry = parseInt(img.dataset.retry || '0');
     
@@ -666,9 +668,21 @@
         `https://cdn.akamai.steamstatic.com/steam/apps/${appid}/capsule_231x87.jpg`
     ];
 
+    if (iconHash) {
+        fallbacks.push(`https://media.steampowered.com/steamcommunity/public/images/apps/${appid}/${iconHash}.jpg`);
+    }
+
     if (retry < fallbacks.length) {
         // Try the next fallback URL
         img.src = fallbacks[retry];
+        
+        // If this is the last fallback (the icon), we must prevent it from stretching awkwardly
+        if (retry === fallbacks.length - 1 && iconHash && !isModal) {
+            img.style.objectFit = 'contain';
+            img.style.background = bgColor || '#3a3a3c';
+            img.style.padding = '10px';
+        }
+        
         img.dataset.retry = (retry + 1).toString();
     } else {
         // All fallbacks failed
